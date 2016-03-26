@@ -16,5 +16,5 @@ apply plugin: 'scala'
 dependencies {
     compile 'org.scala-lang:scala-library:2.10.6'
     compile 'org.scalactic:scalactic_2.10:2.2.6'
-    compile 'org.scalatest:scalatest_2.10:2.2.6'
+    testCompile 'org.scalatest:scalatest_2.10:2.2.6'
 }
