@@ -1,15 +1,6 @@
-package tisonet.scala.steladb
+package tisonet.scala.steladb.memtable
 
 import scala.collection.immutable
-
-trait Memtable {
-
-    def add(key: String, data: String)
-
-    def get(key: String): Option[String]
-
-    def isFull: Boolean
-}
 
 class ImmutableMemtable(val maxSize: Int) extends Memtable {
     var table: immutable.Map[String, String] = immutable.Map()

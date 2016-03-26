@@ -1,4 +1,4 @@
-package tisonet.scala.steladb
+package tisonet.scala.steladb.memtable
 
 import org.scalatest.{BeforeAndAfterEach, FunSuite}
 

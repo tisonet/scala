@@ -1,6 +1,7 @@
 package tisonet.scala.steladb
 
 import tisonet.scala.steladb.OpType._
+import tisonet.scala.steladb.memtable.Memtable
 
 class StelaDb(private val memtable: Memtable, private val commitLog: CommitLog) {
     var logId = 0L
