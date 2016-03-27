@@ -6,6 +6,8 @@ trait Memtable {
 
     def get(key: String): Option[String]
 
+    def getAll: List[(String, String)]
+
     def isFull: Boolean
 }
 
