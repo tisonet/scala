@@ -16,7 +16,7 @@ class SSTableSuite extends FunSuite with BeforeAndAfterEach {
     override def beforeEach() {
         memtable = new Memtable()
 
-        sstable = new SSTable(memtable, filePath, indexSize)
+        sstable = new SSTable (memtable, filePath, indexSize)
     }
 
     override def afterEach() {

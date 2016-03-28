@@ -1,23 +1,19 @@
 package tisonet.scala.steladb.sstable
 
-import java.io._
-import java.nio.charset.StandardCharsets.UTF_8
-
 import tisonet.scala.steladb.memtable.Memtable
 
 import scala.collection.mutable
 
 
 class SSTable(val memtable: Memtable, val filePath: String, val maxIndexSize: Int) {
-
     val NEW_LINE_DELIMITER = '\n'
     val ENTRIES_DELIMITER = ':'
 
     def flushToStorage(): String = {
 
         val index = mutable.Map[String, Long]()
-        var sstableFile: RandomAccessFile = null
         val fileName = filePath + System.currentTimeMillis
+        val sstableFile: SSTableFile = new SSTableFile(fileName)
 
         var offset = 0L
         var dataSize = 0L
@@ -26,8 +22,6 @@ class SSTable(val memtable: Memtable, val filePath: String, val maxIndexSize: In
         var indexSize = 0L
 
         try {
-            sstableFile = openFile(fileName)
-
             // Metadata section
             shiftOffset(writeMetadata)
 
@@ -59,23 +53,30 @@ class SSTable(val memtable: Memtable, val filePath: String, val maxIndexSize: In
 
         def writeDataEntryAndUpdateIndex(entry: (String, String)): Long = {
             index.update(entry._1, offset)
-            writeToSSTable(getFileDataForEntry(entry), sstableFile)
+            sstableFile.write(getFileDataForEntry(entry))
+        }
+
+
+         def getFileDataForEntry(entry: (String, String)): String = {
+            val data = ENTRIES_DELIMITER + entry._1 + ENTRIES_DELIMITER + entry._2 + NEW_LINE_DELIMITER
+            val dataSize = sstableFile.getSize(data)
+            formatSize(dataSize) + data
         }
 
         def writeIndexEntry(entry: (String, Long)): Long = {
-            writeLineToSSTable(entry._1 + ENTRIES_DELIMITER + entry._2, sstableFile)
+            sstableFile.writeLine(entry._1 + ENTRIES_DELIMITER + entry._2)
         }
 
         def shiftOffset(shiftSize: Long) = offset += shiftSize
 
-        def writeDataSection: Long = writeLineToSSTable("==DATA==", sstableFile)
+        def writeDataSection: Long = sstableFile.writeLine("==DATA==")
 
-        def writeIndexSection: Long = writeLineToSSTable("==INDEX==", sstableFile)
+        def writeIndexSection: Long = sstableFile.writeLine("==INDEX==")
 
         def writeMetadata: Long = {
-            writeLineToSSTable("==METADATA==", sstableFile) +
-                writeLineToSSTable("data:offset:%s:size:%s" format(formatSize(dataOffset), formatSize(dataSize)), sstableFile) +
-                writeLineToSSTable("index:offset:%s:size:%s" format(formatSize(indexOffset), formatSize(indexSize)), sstableFile)
+            sstableFile.writeLine("==METADATA==") +
+                sstableFile.writeLine("data:offset:%s:size:%s" format(formatSize(dataOffset), formatSize(dataSize))) +
+                sstableFile.writeLine("index:offset:%s:size:%s" format(formatSize(indexOffset), formatSize(indexSize)))
         }
 
         def shouldStoreEntryWithPosition(indexEntryPosition: Int) =
@@ -91,27 +92,5 @@ class SSTable(val memtable: Memtable, val filePath: String, val maxIndexSize: In
 
     private def sortedMemtableEntries = memtable.getAll.sortBy(_._1)
 
-    private def writeLineToSSTable(data: String, sstableFile: RandomAccessFile): Long = {
-        writeToSSTable(data + NEW_LINE_DELIMITER, sstableFile)
-    }
-
-    private def writeToSSTable(data: String, sstableFile: RandomAccessFile): Long = {
-        val bytesToWrite = getBytes(data)
-        sstableFile.write(bytesToWrite)
-        bytesToWrite.length
-    }
-
-    private def getFileDataForEntry(entry: (String, String)): String = {
-        val data = ENTRIES_DELIMITER + entry._1 + ENTRIES_DELIMITER + entry._2 + NEW_LINE_DELIMITER
-        val dataSize = getBytes(data).length
-        formatSize(dataSize) + data
-    }
-
     private def formatSize(size: Long) = "%06d".format(size)
-
-    private def getBytes(data: String) = data.getBytes(UTF_8)
-
-    private def openFile(fileName: String) = new RandomAccessFile(fileName, "rw")
-
-
 }
