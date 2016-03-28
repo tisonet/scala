@@ -4,7 +4,7 @@ import java.io.File
 
 import scala.io.Source
 import org.scalatest.{BeforeAndAfterEach, FunSuite}
-import tisonet.scala.steladb.memtable.{ImmutableMemtable, Memtable}
+import tisonet.scala.steladb.memtable.{Memtable}
 
 class SSTableSuite extends FunSuite with BeforeAndAfterEach {
     val indexSize = 2
@@ -14,9 +14,9 @@ class SSTableSuite extends FunSuite with BeforeAndAfterEach {
     val filePath = "test_sstable"
 
     override def beforeEach() {
-        memtable = new ImmutableMemtable()
+        memtable = new Memtable()
 
-        sstable = new LocalFileSSTable(memtable, filePath, indexSize)
+        sstable = new SSTable(memtable, filePath, indexSize)
     }
 
     override def afterEach() {

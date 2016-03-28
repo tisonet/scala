@@ -8,7 +8,7 @@ class MemtableSuite extends FunSuite with BeforeAndAfterEach {
     var table: Memtable = _
 
     override def beforeEach() {
-        table = new ImmutableMemtable(maxSize)
+        table = new Memtable(maxSize)
     }
 
     test("Should return added value") {
