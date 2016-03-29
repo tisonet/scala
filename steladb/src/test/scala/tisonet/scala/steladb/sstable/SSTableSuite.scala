@@ -4,7 +4,7 @@ import java.io.File
 
 import scala.io.Source
 import org.scalatest.{BeforeAndAfterEach, FunSuite}
-import tisonet.scala.steladb.memtable.{Memtable}
+import tisonet.scala.steladb.memtable.Memtable
 
 class SSTableSuite extends FunSuite with BeforeAndAfterEach {
     val indexSize = 2

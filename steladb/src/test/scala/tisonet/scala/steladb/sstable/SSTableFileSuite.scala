@@ -1,6 +1,6 @@
 package tisonet.scala.steladb.sstable
 
-import java.io.{BufferedWriter, FileOutputStream, OutputStreamWriter, Writer}
+import java.io.{BufferedWriter, FileOutputStream, OutputStreamWriter}
 import java.nio.charset.StandardCharsets._
 import java.nio.file.{Files, Paths}
 
@@ -9,56 +9,52 @@ import org.scalatest.{BeforeAndAfterEach, FunSuite}
 class SSTableFileSuite extends FunSuite with BeforeAndAfterEach {
 
     val TEST_FILE_PATH = Paths.get("test_sstable").toAbsolutePath.toString
-    var file: SSTableFile = _
+    var filePath: String = _
 
     override def beforeEach() {
-        file = new SSTableFile(TEST_FILE_PATH + System.currentTimeMillis)
+        filePath = TEST_FILE_PATH + System.currentTimeMillis
     }
 
     override def afterEach() {
-        file.close()
-        deleteFile(file.filePath)
+       // deleteFile(filePath)
     }
 
     test("Get size should return number of bytes of in UTF-8 encoding") {
-        assert(file.getSize("Hello world 1") == 13)
+        assert(SSTableFile.getSize("Hello world 1") == 13)
     }
 
     test("Write line should write data with new line delimiter") {
-        file.writeLine("Hello world")
-        assert(readFile(file.filePath) == "Hello world\n")
+        SSTableFile(filePath).writeLine("Hello world")
+        assert(readFile(filePath) == "Hello world\n")
     }
 
     test("Write should write data into file") {
-        file.write("Hello world")
-        assert(readFile(file.filePath) == "Hello world")
+        SSTableFile(filePath).write("Hello world")
+        assert(readFile(filePath) == "Hello world")
     }
 
     test("Read should read file data of a given size in UTF-8 encoding") {
-        writeToFile(file.filePath, "Hi Johny Walker")
-        assert(file.read(8) == "Hi Johny")
+        writeToFile(filePath, "Hi Johny Walker")
+        assert(SSTableFile(filePath).read(8)._1 == "Hi Johny")
     }
 
     test("Seek should skip to given position and write should rewrite data") {
-        writeToFile(file.filePath, "Hello")
-        file.seek(1)
-        file.write("a")
+        writeToFile(filePath, "Hello")
+        new SSTableFile(filePath, 1).write("a")
 
-        assert(readFile(file.filePath) == "Hallo")
+        assert(readFile(filePath) == "Hallo")
     }
 
-    test("Seek should skip to given position and read should start read from a given position") {
-        writeToFile(file.filePath, "Hello")
-        file.seek(2)
-
-        assert(file.read(3) == "llo")
+    test("Seek should skip to given position and read should start from a given position") {
+        writeToFile(filePath, "Hello")
+        assert(new SSTableFile(filePath, 2).read(3)._1 == "llo")
     }
 
     def readFile(filePath: String): String =
         new String(Files.readAllBytes(Paths.get(filePath)), UTF_8)
 
     def deleteFile(filePath: String) =
-        Files.delete(Paths.get(filePath))
+        Files.deleteIfExists(Paths.get(filePath))
 
     def writeToFile(filePath: String, data: String) = {
         val out = new BufferedWriter(new OutputStreamWriter(
