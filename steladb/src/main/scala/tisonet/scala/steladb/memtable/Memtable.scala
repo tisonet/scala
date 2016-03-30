@@ -1,21 +1,30 @@
 package tisonet.scala.steladb.memtable
 
-import scala.collection.immutable
+import scala.collection.immutable._
 
-class Memtable(val maxSize: Int = 100) {
-    var table: immutable.Map[String, String] = immutable.Map()
+object Memtable {
+    def apply() = new Memtable(10)
+}
 
-    def add(key: String, data: String): Unit = {
-        table = table.+((key, data))
+class Memtable private(val maxSize: Int, val table: Map[String, String]) {
+    def this(maxSize: Int) = this(maxSize, Map())
+
+    def add(entry: MemtableEntry): Memtable = {
+        new Memtable(maxSize, table.+((entry.key, entry.data)))
     }
 
     def get(key: String): Option[String] = {
         table.get(key)
     }
 
-    def getAll: List[(String, String)] = {
-        table.toList
+    def sortedEntries = {
+        for ((key, data) <- table.toSeq.sortBy(_._1))
+            yield MemtableEntry(key, data)
     }
 
     def isFull: Boolean = table.size >= maxSize
+}
+
+case class MemtableEntry(val key: String, val data: String) {
+
 }

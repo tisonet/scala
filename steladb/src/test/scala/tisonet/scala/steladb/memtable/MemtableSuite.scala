@@ -12,25 +12,25 @@ class MemtableSuite extends FunSuite with BeforeAndAfterEach {
     }
 
     test("Should return added value") {
-        table.add("key1", "some data")
+        table = table.add(MemtableEntry("key1", "some data"))
 
         assert(table.get("key1").get == "some data")
     }
 
     test("Should not be full when size does not exceed max size") {
-        table.add("key1", "some data")
+        table =  table.add(MemtableEntry("key1", "some data"))
 
         assert(!table.isFull)
     }
 
     test("Should be full when size reach max size") {
-        (1 to maxSize).foreach(i => table.add("key" + i, "some data"))
+        table = (1 to maxSize).foldLeft(table) ((t, i) => t.add(MemtableEntry("key" + i, "some data")))
 
         assert(table.isFull)
     }
 
     test("Should be full when added the same key") {
-        (1 to maxSize) foreach (_ => table.add("key", "some data"))
+        table = (1 to maxSize).foldLeft(table) ((t, i) => t.add(MemtableEntry("key", "some data")))
 
         assert(!table.isFull)
     }

@@ -1,6 +1,6 @@
 package tisonet.scala.steladb.sstable
 
-import tisonet.scala.steladb.memtable.Memtable
+import tisonet.scala.steladb.memtable.{MemtableEntry, Memtable}
 
 class SSTable(val memtable: Memtable, val filePath: String, val maxIndexSize: Int) {
     val NEW_LINE_DELIMITER = '\n'
@@ -21,9 +21,9 @@ class SSTable(val memtable: Memtable, val filePath: String, val maxIndexSize: In
             sstableFile = writeDataSection(sstableFile)
             dataOffset = sstableFile.offset
 
-            val (sstableIndex, _sstableFile) = sortedMemtableEntries.foldLeft(new SSTableIndex, sstableFile) {
-                case ((i, f), (key, data)) =>
-                    (i.add(IndexEntry(key, f.offset)), f.write(getFileDataForEntry((key, data)))
+            val (sstableIndex, _sstableFile) = memtable.sortedEntries.foldLeft(new SSTableIndex, sstableFile) {
+                case ((index, file), MemtableEntry(key, data)) =>
+                    (index.add(IndexEntry(key, file.offset)), file.write(getFileDataForEntry((key, data)))
                 )
             }
 
@@ -33,9 +33,9 @@ class SSTable(val memtable: Memtable, val filePath: String, val maxIndexSize: In
             indexOffset = sstableFile.offset
 
             sstableFile = sstableIndex.sortedEntries.zipWithIndex.foldLeft(sstableFile) {
-                case (f, (IndexEntry(rowKey, offset), i)) if shouldStoreEntryWithPosition(i, sstableIndex.size) =>
-                    f.writeLine(rowKey + ENTRIES_DELIMITER + offset)
-                case  (f, _) => f
+                case (file, (IndexEntry(rowKey, offset), i)) if shouldStoreEntryWithPosition(i, sstableIndex.size) =>
+                    file.writeLine(rowKey + ENTRIES_DELIMITER + offset)
+                case  (file, _) => file
             }
 
             indexSize = sstableFile.offset - indexOffset
@@ -55,7 +55,6 @@ class SSTable(val memtable: Memtable, val filePath: String, val maxIndexSize: In
             .writeLine("index:offset:%s:size:%s" format(formatSize(metadata.indexOffset), formatSize(metadata.indexSize)))
     }
 
-    private def sortedMemtableEntries = memtable.getAll.sortBy(_._1)
 
     private def formatSize(size: Long) = "%06d".format(size)
 
