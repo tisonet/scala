@@ -13,8 +13,12 @@ class Memtable private(val maxSize: Int, val table: Map[String, String]) {
         new Memtable(maxSize, table.+((entry.key, entry.data)))
     }
 
-    def get(key: String): Option[String] = {
-        table.get(key)
+    def get(key: String): Option[MemtableEntry] = {
+
+        table.get(key) match {
+            case Some(data) => Some(MemtableEntry(key, data))
+            case _ => None
+        }
     }
 
     def sortedEntries = {
@@ -25,6 +29,3 @@ class Memtable private(val maxSize: Int, val table: Map[String, String]) {
     def isFull: Boolean = table.size >= maxSize
 }
 
-case class MemtableEntry(val key: String, val data: String) {
-
-}

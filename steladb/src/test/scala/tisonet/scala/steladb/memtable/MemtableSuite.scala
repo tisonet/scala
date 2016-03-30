@@ -14,7 +14,7 @@ class MemtableSuite extends FunSuite with BeforeAndAfterEach {
     test("Should return added value") {
         table = table.add(MemtableEntry("key1", "some data"))
 
-        assert(table.get("key1").get == "some data")
+        assert(table.get("key1").get.data == "some data")
     }
 
     test("Should not be full when size does not exceed max size") {
