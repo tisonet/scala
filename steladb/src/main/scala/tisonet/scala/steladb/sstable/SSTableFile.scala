@@ -20,10 +20,13 @@ object SSTableFile {
 class SSTableFile(val filePath: String, val offset: Int) {
     val NEW_LINE_DELIMITER = '\n'
 
-    private def file = {
+    private def useFile (action: RandomAccessFile => Int)  =  {
         val rFile = new RandomAccessFile(filePath, "rw")
         rFile.seek(offset)
-        rFile
+        val shift = action(rFile)
+        rFile.close()
+
+        SSTableFile(filePath, offset + shift)
     }
 
     def getSize(data: String) = SSTableFile.getSize(data)
@@ -33,20 +36,22 @@ class SSTableFile(val filePath: String, val offset: Int) {
     }
 
     def write(data: String): SSTableFile = {
-        val bytesToWrite = SSTableFile.getBytes(data)
 
-        file.write(bytesToWrite)
-        file.close()
-
-        new SSTableFile(filePath, offset + bytesToWrite.length)
+        useFile(file => {
+            val bytesToWrite = SSTableFile.getBytes(data)
+            file.write(bytesToWrite)
+            bytesToWrite.length
+        })
     }
 
     def read(size: Int): (String, SSTableFile) = {
         val buffer = Array.fill[Byte](size)(0)
-        file.read(buffer)
-        file.close()
-        (SSTableFile.getData(buffer), new SSTableFile(filePath, offset + size))
-    }
 
+        val sstableFile = useFile(file => {
+            file.read(buffer)
+        })
+
+        (SSTableFile.getData(buffer), sstableFile)
+    }
 }
 
