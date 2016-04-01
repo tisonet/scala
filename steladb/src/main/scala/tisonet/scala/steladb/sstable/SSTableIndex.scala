@@ -3,7 +3,7 @@ package tisonet.scala.steladb.sstable
 import scala.collection.immutable._
 
 class SSTableIndex(val index: Map[String, Long]) {
-    def this() = this(new HashMap[String, Long]())
+    def this() = this(Map())
 
     def add(entry: IndexEntry) = {
         new SSTableIndex(index.+((entry.rowKey, entry.offset)))
