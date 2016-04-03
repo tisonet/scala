@@ -8,7 +8,7 @@ import tisonet.scala.steladb.memtable.{Memtable, MemtableEntry}
 
 class SSTableSuite extends FunSuite with BeforeAndAfterEach {
     val indexSize = 2
-    var sstable: SSTable = _
+    var sstable: SSTableWriter = _
     var fileName: String = _
     val filePath = "test_sstable"
 
@@ -25,7 +25,7 @@ class SSTableSuite extends FunSuite with BeforeAndAfterEach {
             .add(MemtableEntry("key2", "other data"))
             .add(MemtableEntry("key3", "other data"))
 
-        sstable = new SSTable (memtable, filePath, indexSize)
+        sstable = new SSTableWriter (memtable, filePath, indexSize)
         val expected = "" +
             "==METADATA==\ndata:offset:000085:size:000068\nindex:offset:000163:size:000017\n" +
             "==DATA==\n000016:key1:some data\n000017:key2:other data\n000017:key3:other data\n" +

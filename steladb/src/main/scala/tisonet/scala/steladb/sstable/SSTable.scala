@@ -1,75 +1,40 @@
 package tisonet.scala.steladb.sstable
 
-import tisonet.scala.steladb.memtable.{MemtableEntry, Memtable}
+import tisonet.scala.steladb.sstable.DataSizeFormater.parseSize
 
-class SSTable(val memtable: Memtable, val filePath: String, val maxIndexSize: Int) {
-    val NEW_LINE_DELIMITER = '\n'
-    val ENTRIES_DELIMITER = ':'
+class SSTable(filePath: String, index: SSTableIndex) extends SSTableCommon{
 
-    def flushToStorage(): String = {
+    def get(rowKey: String): Option[String] = {
+        index.sortedEntries.find { case IndexEntry(key, _) => key >= rowKey } match {
+            case Some(e) => findData(e)
+            case _ => None
+        }
+    }
 
-        val fileName = filePath + System.currentTimeMillis
+    private def findData(entry: IndexEntry): Option[String] = {
 
-        var dataSize = 0L
-        var dataOffset = 0L
-        var indexOffset = 0L
-        var indexSize = 0L
-
-        try {
-            var sstableFile = writeMetadata(SSTableMetadata(0, 0, 0, 0), SSTableFile(fileName))
-
-            sstableFile = writeDataSection(sstableFile)
-            dataOffset = sstableFile.offset
-
-            val (sstableIndex, _sstableFile) = memtable.sortedEntries.foldLeft(new SSTableIndex, sstableFile) {
-                case ((index, file), MemtableEntry(key, data)) =>
-                    (index.add(IndexEntry(key, file.offset)), file.write(getFileDataForEntry((key, data)))
-                )
-            }
-
-            dataSize = _sstableFile.offset - dataOffset
-
-            sstableFile = writeIndexSection(_sstableFile)
-            indexOffset = sstableFile.offset
-
-            sstableFile = sstableIndex.sortedEntries.zipWithIndex.foldLeft(sstableFile) {
-                case (file, (IndexEntry(rowKey, offset), i)) if shouldStoreEntryWithPosition(i, sstableIndex.size) =>
-                    file.writeLine(rowKey + ENTRIES_DELIMITER + offset)
-                case  (file, _) => file
-            }
-
-            indexSize = sstableFile.offset - indexOffset
-
-            // Metadata update with correct offsets and sizes
-            writeMetadata(
-                SSTableMetadata(dataOffset, dataSize, indexOffset, indexSize),
-                SSTableFile(fileName))
+       readDataFromSSTable(entry.offset) match {
+           case (Some(data), _) if data.startsWith(entry.rowKey) => Some(parseData(data))
+           case (_, offset) => findData(IndexEntry(entry.rowKey, offset))
+           case _ => None
         }
 
-        fileName
     }
 
-    private def writeMetadata (metadata: SSTableMetadata, sstableFile: SSTableFile) = {
-        sstableFile.writeLine("==METADATA==")
-            .writeLine("data:offset:%s:size:%s" format(formatSize(metadata.dataOffset), formatSize(metadata.dataSize)))
-            .writeLine("index:offset:%s:size:%s" format(formatSize(metadata.indexOffset), formatSize(metadata.indexSize)))
+    private def readDataFromSSTable(offset: Long) = {
+
+        SSTableFile(filePath, offset).read(6) match {
+            case (dataSize, sstableFile) =>
+                sstableFile.read(parseSize(dataSize)) match {
+                    case (data, file) => (Some(data), file.offset)
+                    case _ => (None, 0L)
+                }
+        }
     }
 
-
-    private def formatSize(size: Long) = "%06d".format(size)
-
-    private def writeDataSection(sstableFile: SSTableFile) = sstableFile.writeLine("==DATA==")
-
-    private def writeIndexSection(sstableFile: SSTableFile) = sstableFile.writeLine("==INDEX==")
-
-    private def shouldStoreEntryWithPosition(indexEntryPosition: Int, indexSize: Int) =
-        (indexEntryPosition % Math.ceil(indexSize / maxIndexSize.toDouble)) == 0
-
-    private def getFileDataForEntry(entry: (String, String)): String = {
-        val data = ENTRIES_DELIMITER + entry._1 +
-            ENTRIES_DELIMITER + entry._2 + NEW_LINE_DELIMITER
-
-        formatSize(SSTableFile.getSize(data)) + data
+    private def parseData (line: String): String = {
+        line.split(ENTRIES_DELIMITER) match {
+            case (key, data) => data
+        }
     }
-
 }

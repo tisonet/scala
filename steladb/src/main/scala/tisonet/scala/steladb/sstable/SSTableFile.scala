@@ -4,7 +4,7 @@ import java.io.RandomAccessFile
 import java.nio.charset.StandardCharsets.UTF_8
 
 object SSTableFile {
-    def apply (filePath: String, position: Int = 0) = new SSTableFile(filePath, position)
+    def apply (filePath: String, position: Long = 0) = new SSTableFile(filePath, position)
 
     def getSize (data: String) = getBytes(data).length
     def getData(data: Array[Byte]) = new String(data, UTF_8)
@@ -17,7 +17,7 @@ object SSTableFile {
   * @param filePath path to SSTable file
   * @param offset position in SSTable file - read, write happens from a given position
   */
-class SSTableFile(val filePath: String, val offset: Int) {
+class SSTableFile(val filePath: String, val offset: Long) {
     val NEW_LINE_DELIMITER = '\n'
 
     private def useFile (action: RandomAccessFile => Int)  =  {
@@ -44,8 +44,8 @@ class SSTableFile(val filePath: String, val offset: Int) {
         })
     }
 
-    def read(size: Int): (String, SSTableFile) = {
-        val buffer = Array.fill[Byte](size)(0)
+    def read(size: Long): (String, SSTableFile) = {
+        val buffer = Array.fill[Byte](size.toInt)(0)
 
         val sstableFile = useFile(file => {
             file.read(buffer)
