@@ -16,7 +16,7 @@ class SSTableWriter(val memtable: Memtable, val filePath: String, val maxIndexSi
             sstableFile = writeDataSection(sstableFile)
             metadata = metadata.copy(sstableFile.offset)
 
-            val (sstableIndex, _sstableFile) = memtable.sortedEntries.foldLeft(SSTableIndex(), sstableFile) {
+            val (sstableIndex, _sstableFile) = memtable.entries.foldLeft(SSTableIndex(), sstableFile) {
                 case ((index, file), MemtableEntry(key, data)) => (
                         index.add(IndexEntry(key, file.offset)),
                         file.write(getFileDataForEntry(DataEntry(key, data)))

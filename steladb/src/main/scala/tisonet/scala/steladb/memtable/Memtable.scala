@@ -6,26 +6,25 @@ object Memtable {
     def apply() = new Memtable(10)
 }
 
-class Memtable private(val maxSize: Int, val table: Map[String, String]) {
-    def this(maxSize: Int) = this(maxSize, Map())
+class Memtable private(val maxSize: Int, val table: SortedMap[String, String]) {
+    def this(maxSize: Int) = this(maxSize, TreeMap())
 
-    def add(entry: MemtableEntry): Memtable = {
+    def add(entry: MemtableEntry) = {
         new Memtable(maxSize, table.+((entry.key, entry.data)))
     }
 
     def get(key: String): Option[MemtableEntry] = {
-
         table.get(key) match {
             case Some(data) => Some(MemtableEntry(key, data))
             case _ => None
         }
     }
 
-    def sortedEntries = {
-        for ((key, data) <- table.toSeq.sortBy(_._1))
+    def entries = {
+        for ((key, data) <- table)
             yield MemtableEntry(key, data)
     }
 
-    def isFull: Boolean = table.size >= maxSize
+    def isFull = table.size >= maxSize
 }
 

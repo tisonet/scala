@@ -34,4 +34,17 @@ class MemtableSuite extends FunSuite with BeforeAndAfterEach {
 
         assert(!table.isFull)
     }
+
+    test("Should return entries ordered by key") {
+        val entries = table
+            .add(MemtableEntry("b", "b"))
+            .add(MemtableEntry("c", "c"))
+            .add(MemtableEntry("a", "a"))
+            .entries
+            .toList
+
+        assert(entries(0) == MemtableEntry("a", "a"))
+        assert(entries(1) == MemtableEntry("b", "b"))
+        assert(entries(2) == MemtableEntry("c", "c"))
+    }
 }
