@@ -29,7 +29,7 @@ class MemtableSuite extends FunSuite with BeforeAndAfterEach {
         assert(table.isFull)
     }
 
-    test("Should be full when added the same key") {
+    test("Should not be full when only added the same key") {
         table = (1 to maxSize).foldLeft(table) ((t, i) => t.add(MemtableEntry("key", "some data")))
 
         assert(!table.isFull)
