@@ -2,16 +2,27 @@ package tisonet.scala.steladb.sstable
 
 class SSTableReader(filePath: String) extends SSTableCommon {
     def readSSTable(): SSTable = {
-        val metadata = SSTableMetadata(SSTableFile(filePath))
-        val (indexData, _) = SSTableFile(filePath, metadata.indexOffset).read(metadata.indexSize)
+        val index = readAndBuildIndex(filePath)
+        new SSTable(filePath, index)
+    }
 
+    private def readAndBuildIndex(filePath: String) = {
 
-        val sstableIndex = indexData.split(NEW_LINE_DELIMITER)
-            .map(_.split(ENTRIES_DELIMITER))
+        readIndexDataFromFile(filePath)
+            .split(NEW_LINE_DELIMITER)
+            .map(parseIndexEntryFromRawLine)
             .foldLeft(SSTableIndex()) {
-                case (index, (key, data)) => index.add(IndexEntry(key, data))
+                case (index, indexEntry) => index.add(indexEntry)
             }
+    }
 
-        new SSTable(filePath, sstableIndex)
+    private def readIndexDataFromFile(filePath: String) = {
+        val metadata = SSTableMetadata(SSTableFile(filePath))
+        SSTableFile(filePath, metadata.indexOffset).read(metadata.indexSize)._1
+    }
+
+    private def parseIndexEntryFromRawLine(line: String): IndexEntry = {
+        val parts = line.split(ENTRIES_DELIMITER)
+        IndexEntry(parts(0), parts(1).toLong)
     }
 }

@@ -16,9 +16,10 @@ class SSTableWriter(val memtable: Memtable, val filePath: String, val maxIndexSi
             sstableFile = writeDataSection(sstableFile)
             metadata = metadata.copy(sstableFile.offset)
 
-            val (sstableIndex, _sstableFile) = memtable.sortedEntries.foldLeft(new SSTableIndex, sstableFile) {
-                case ((index, file), MemtableEntry(key, data)) =>
-                    (index.add(IndexEntry(key, file.offset)), file.write(getFileDataForEntry((key, data)))
+            val (sstableIndex, _sstableFile) = memtable.sortedEntries.foldLeft(SSTableIndex(), sstableFile) {
+                case ((index, file), MemtableEntry(key, data)) => (
+                        index.add(IndexEntry(key, file.offset)),
+                        file.write(getFileDataForEntry(DataEntry(key, data)))
                 )
             }
             metadata = metadata.copy(dataSize = _sstableFile.offset - metadata.dataOffset)
@@ -46,9 +47,9 @@ class SSTableWriter(val memtable: Memtable, val filePath: String, val maxIndexSi
     private def shouldStoreEntryWithPosition(indexEntryPosition: Int, indexSize: Int) =
         (indexEntryPosition % Math.ceil(indexSize / maxIndexSize.toDouble)) == 0
 
-    private def getFileDataForEntry(entry: (String, String)): String = {
-        val data = ENTRIES_DELIMITER + entry._1 +
-            ENTRIES_DELIMITER + entry._2 + NEW_LINE_DELIMITER
+    private def getFileDataForEntry(entry: DataEntry): String = {
+        val data = ENTRIES_DELIMITER + entry.key +
+            ENTRIES_DELIMITER + entry.data + NEW_LINE_DELIMITER
 
         DataSizeFormater.formatSize(SSTableFile.getSize(data)) + data
     }

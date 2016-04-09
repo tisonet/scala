@@ -2,26 +2,38 @@ package tisonet.scala.steladb.sstable
 
 import tisonet.scala.steladb.sstable.DataSizeFormater.parseSize
 
-class SSTable(filePath: String, index: SSTableIndex) extends SSTableCommon{
+class SSTable(filePath: String, index: SSTableIndex) extends SSTableCommon {
 
     def get(rowKey: String): Option[String] = {
-        index.sortedEntries.find { case IndexEntry(key, _) => key >= rowKey } match {
+
+        def indexEntryByKey(entry: IndexEntry) = {
+            entry.rowKey >= rowKey
+        }
+
+        index.sortedEntries.find(indexEntryByKey) match {
             case Some(e) => findData(e)
             case _ => None
         }
     }
 
-    private def findData(entry: IndexEntry): Option[String] = {
+    private def findData(indexEntry: IndexEntry): Option[String] = {
 
-       readDataFromSSTable(entry.offset) match {
-           case (Some(data), _) if data.startsWith(entry.rowKey) => Some(parseData(data))
-           case (_, offset) => findData(IndexEntry(entry.rowKey, offset))
-           case _ => None
+        def hasWantedKey(data: String): Boolean = {
+            data.startsWith(indexEntry.rowKey)
         }
 
+        def readNextEntry(offset: Long): Option[String] = {
+            findData(IndexEntry(indexEntry.rowKey, offset))
+        }
+
+        readDataEntryFromSSTable(indexEntry.offset) match {
+            case (Some(entry), _) if hasWantedKey(entry) => Some(parseData(entry))
+            case (_, offset) => readNextEntry(offset)
+            case _ => None
+        }
     }
 
-    private def readDataFromSSTable(offset: Long) = {
+    private def readDataEntryFromSSTable(offset: Long) = {
 
         SSTableFile(filePath, offset).read(6) match {
             case (dataSize, sstableFile) =>
@@ -32,9 +44,7 @@ class SSTable(filePath: String, index: SSTableIndex) extends SSTableCommon{
         }
     }
 
-    private def parseData (line: String): String = {
-        line.split(ENTRIES_DELIMITER) match {
-            case (key, data) => data
-        }
+    private def parseData(line: String): String = {
+        line.split(ENTRIES_DELIMITER)(1)
     }
 }
