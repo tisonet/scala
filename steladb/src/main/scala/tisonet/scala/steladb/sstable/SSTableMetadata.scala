@@ -4,7 +4,7 @@ import tisonet.scala.steladb.sstable.DataSizeFormater.formatSize
 import tisonet.scala.steladb.sstable.DataSizeFormater.parseSize
 
 object SSTableMetadata {
-    def apply(sstableFile: SSTableFile) = new SSTableMetadata().loadFromFile(sstableFile)
+    def apply(sstableFile: SSTableStorage) = new SSTableMetadata().loadFromFile(sstableFile)
 }
 
 case class SSTableMetadata(dataOffset: Long = 0, dataSize: Long = 0,
@@ -14,7 +14,7 @@ case class SSTableMetadata(dataOffset: Long = 0, dataSize: Long = 0,
     val DATA_LINE_PATTERN = "data:offset:%s:size:%s\n"
     val INDEX_LINE_PATTERN = "index:offset:%s:size:%s\n"
 
-    def writeToFile(sstableFile: SSTableFile) = {
+    def writeToFile(sstableFile: SSTableStorage) = {
 
         sstableFile
             .write(METADATA_TITLE_LINE)
@@ -22,7 +22,7 @@ case class SSTableMetadata(dataOffset: Long = 0, dataSize: Long = 0,
             .write(indexLine())
     }
 
-    def loadFromFile(sstableFile: SSTableFile) = {
+    def loadFromFile(sstableFile: SSTableStorage) = {
         val metadataSize = sstableFile.getSize(METADATA_TITLE_LINE + dataLine() + indexLine())
 
         parseMetadata(sstableFile.read(metadataSize)._1)

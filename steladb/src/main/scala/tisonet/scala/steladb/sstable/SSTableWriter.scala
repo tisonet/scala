@@ -4,14 +4,15 @@ import java.lang.System.currentTimeMillis
 
 import tisonet.scala.steladb.memtable.{Memtable, MemtableEntry}
 
-class SSTableWriter(val memtable: Memtable, val filePath: String, val maxIndexSize: Int)
+class SSTableWriter(val memtable: Memtable, val filePath: String, val maxIndexSize: Int,
+                    val createSSTableFile: (String => SSTableStorage))
     extends SSTableIO{
 
     def flushToStorage(): String = {
 
         try {
             var metadata = SSTableMetadata()
-            var sstableFile = metadata.writeToFile(SSTableFile(filePath + currentTimeMillis))
+            var sstableFile = metadata.writeToFile(createSSTableFile(filePath + currentTimeMillis))
 
             sstableFile = writeDataSection(sstableFile)
             metadata = metadata.copy(sstableFile.offset)
@@ -36,13 +37,13 @@ class SSTableWriter(val memtable: Memtable, val filePath: String, val maxIndexSi
             metadata = metadata.copy(indexSize = sstableFile.offset - metadata.indexOffset)
 
             // Metadata update with correct offsets and sizes
-            metadata.writeToFile(SSTableFile(sstableFile.filePath)).filePath
+            metadata.writeToFile(createSSTableFile(sstableFile.filePath)).filePath
         }
     }
 
-    private def writeDataSection(sstableFile: SSTableFile) = sstableFile.writeLine("==DATA==")
+    private def writeDataSection(sstableFile: SSTableStorage) = sstableFile.writeLine("==DATA==")
 
-    private def writeIndexSection(sstableFile: SSTableFile) = sstableFile.writeLine("==INDEX==")
+    private def writeIndexSection(sstableFile: SSTableStorage) = sstableFile.writeLine("==INDEX==")
 
     private def shouldStoreEntryWithPosition(indexEntryPosition: Int, indexSize: Int) =
         (indexEntryPosition % Math.ceil(indexSize / maxIndexSize.toDouble)) == 0
@@ -51,7 +52,7 @@ class SSTableWriter(val memtable: Memtable, val filePath: String, val maxIndexSi
         val data = ENTRIES_DELIMITER + entry.key +
             ENTRIES_DELIMITER + entry.data + NEW_LINE_DELIMITER
 
-        DataSizeFormater.formatSize(SSTableFile.getSize(data)) + data
+        DataSizeFormater.formatSize(SSTableStorage.getSize(data)) + data
     }
 
 }

@@ -15,8 +15,8 @@ class SSTableIndexReader private(filePath: String) extends SSTableIO {
     }
 
     private def readIndexDataFromFile(filePath: String) = {
-        val metadata = SSTableMetadata(SSTableFile(filePath))
-        SSTableFile(filePath, metadata.indexOffset).read(metadata.indexSize)._1
+        val metadata = SSTableMetadata(SSTableStorage(filePath))
+        SSTableStorage(filePath, metadata.indexOffset).read(metadata.indexSize)._1
     }
 
     private def parseIndexEntryFromRawLine(line: String): IndexEntry = {

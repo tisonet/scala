@@ -35,7 +35,7 @@ class SSTable(filePath: String, index: SSTableIndex) extends SSTableIO {
 
     private def readDataEntryFromSSTable(offset: Long) = {
 
-        SSTableFile(filePath, offset).read(6) match {
+        SSTableStorage(filePath, offset).read(6) match {
             case (dataSize, sstableFile) =>
                 sstableFile.read(parseSize(dataSize)) match {
                     case (data, file) => (Some(data), file.offset)
