@@ -5,7 +5,8 @@ object SSTableIndexReader {
 }
 
 class SSTableIndexReader private(filePath: String) extends SSTableIO {
-    def read(): SSTableIndex = {
+
+    def read() = {
         readIndexDataFromFile(filePath)
             .split(NEW_LINE_DELIMITER)
             .map(parseIndexEntryFromRawLine)
@@ -19,7 +20,7 @@ class SSTableIndexReader private(filePath: String) extends SSTableIO {
         SSTableStorage(filePath, metadata.indexOffset).read(metadata.indexSize)._1
     }
 
-    private def parseIndexEntryFromRawLine(line: String): IndexEntry = {
+    private def parseIndexEntryFromRawLine(line: String) = {
         val parts = line.split(ENTRIES_DELIMITER)
         IndexEntry(parts(0), parts(1).toLong)
     }

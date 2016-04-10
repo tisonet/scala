@@ -8,7 +8,7 @@ class SSTableWriter(val memtable: Memtable, val filePath: String, val maxIndexSi
                     val createSSTableFile: (String => SSTableStorage))
     extends SSTableIO{
 
-    def flushToStorage(): String = {
+    def flushToStorage() = {
 
         try {
             var metadata = SSTableMetadata()
@@ -48,7 +48,7 @@ class SSTableWriter(val memtable: Memtable, val filePath: String, val maxIndexSi
     private def shouldStoreEntryWithPosition(indexEntryPosition: Int, indexSize: Int) =
         (indexEntryPosition % Math.ceil(indexSize / maxIndexSize.toDouble)) == 0
 
-    private def getFileDataForEntry(entry: DataEntry): String = {
+    private def getFileDataForEntry(entry: DataEntry) = {
         val data = ENTRIES_DELIMITER + entry.key +
             ENTRIES_DELIMITER + entry.data + NEW_LINE_DELIMITER
 
