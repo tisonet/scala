@@ -3,16 +3,18 @@ package tisonet.scala.steladb.sstable
 import java.lang.System.currentTimeMillis
 
 import tisonet.scala.steladb.memtable.{Memtable, MemtableEntry}
+import tisonet.scala.steladb.sstable.SSTableStorage.SSTableStorageFactory
+import tisonet.scala.steladb.sstable.index.{IndexEntry, SSTableIndex}
 
 class SSTableWriter(val memtable: Memtable, val filePath: String, val maxIndexSize: Int,
-                    val createSSTableFile: (String => SSTableStorage))
+                    val sstableFactory: SSTableStorageFactory)
     extends SSTableIO{
 
     def flushToStorage() = {
 
         try {
             var metadata = SSTableMetadata()
-            var sstableFile = metadata.writeToFile(createSSTableFile(filePath + currentTimeMillis))
+            var sstableFile = metadata.writeToFile(sstableFactory(filePath + currentTimeMillis))
 
             sstableFile = writeDataSection(sstableFile)
             metadata = metadata.copy(sstableFile.offset)
@@ -37,7 +39,7 @@ class SSTableWriter(val memtable: Memtable, val filePath: String, val maxIndexSi
             metadata = metadata.copy(indexSize = sstableFile.offset - metadata.indexOffset)
 
             // Metadata update with correct offsets and sizes
-            metadata.writeToFile(createSSTableFile(sstableFile.filePath)).filePath
+            metadata.writeToFile(sstableFactory(sstableFile.filePath)).filePath
         }
     }
 

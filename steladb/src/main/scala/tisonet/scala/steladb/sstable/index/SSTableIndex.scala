@@ -1,4 +1,4 @@
-package tisonet.scala.steladb.sstable
+package tisonet.scala.steladb.sstable.index
 
 import scala.Predef.Map
 import scala.collection.immutable._
@@ -18,6 +18,9 @@ class SSTableIndex private (val index: Map[String, Long]) {
     }
 
     def size = index.size
+
+    override def equals(obj: Any) = {
+        obj.isInstanceOf[SSTableIndex] && obj.asInstanceOf[SSTableIndex].index == index
+    }
 }
 
-case class IndexEntry(rowKey: String, offset: Long)

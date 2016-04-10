@@ -17,4 +17,13 @@ class SSTableMetadataSuite extends FunSuite with BeforeAndAfterEach {
         assert(metadata == SSTableMetadata(85, 68, 163, 17))
     }
 
+    test("Should parse metadata correctly when ends with new line") {
+        val metadataText = "==METADATA==\ndata:offset:000085:size:000068\nindex:offset:000163:size:000017\n"
+        val metadata = SSTableMetadata().parseMetadata(metadataText)
+        assert(metadata == SSTableMetadata(85, 68, 163, 17))
+    }
+
+
+
+
 }

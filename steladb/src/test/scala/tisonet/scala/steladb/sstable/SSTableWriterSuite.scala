@@ -1,8 +1,6 @@
 package tisonet.scala.steladb.sstable
 
-import java.io.File
-
-import org.scalatest.{BeforeAndAfterEach, FunSuite}
+import org.scalatest.FunSuite
 import tisonet.scala.steladb.memtable.{Memtable, MemtableEntry}
 import tisonet.scala.steladb.stubs.SSTableInMemoryStorage
 

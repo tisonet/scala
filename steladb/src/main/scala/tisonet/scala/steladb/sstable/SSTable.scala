@@ -1,6 +1,7 @@
 package tisonet.scala.steladb.sstable
 
 import tisonet.scala.steladb.sstable.DataSizeFormater.parseSize
+import tisonet.scala.steladb.sstable.index.{IndexEntry, SSTableIndex}
 
 class SSTable(filePath: String, index: SSTableIndex) extends SSTableIO {
 

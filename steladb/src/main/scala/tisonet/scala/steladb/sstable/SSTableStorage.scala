@@ -3,7 +3,9 @@ package tisonet.scala.steladb.sstable
 import java.io.RandomAccessFile
 import java.nio.charset.StandardCharsets.UTF_8
 
+
 trait SSTableStorage {
+
     def filePath: String
     def offset: Long
 
@@ -11,9 +13,12 @@ trait SSTableStorage {
     def writeLine(data: String): SSTableStorage
     def read(size: Long): (String, SSTableStorage)
     def getSize(data: String): Long
+    def seek(toOffset: Long): SSTableStorage
 }
 
 object SSTableStorage {
+    type SSTableStorageFactory = (String) => SSTableStorage
+
     def apply (filePath: String, position: Long = 0) = new SSTableFileStorage(filePath, position)
 
     def getSize (data: String) = getBytes(data).length
@@ -35,7 +40,7 @@ class SSTableFileStorage(val filePath: String, val offset: Long) extends SSTable
         val shift = action(rFile)
         rFile.close()
 
-        SSTableStorage(filePath, offset + shift)
+        new SSTableFileStorage(filePath, offset + shift)
     }
 
     def getSize(data: String) = SSTableStorage.getSize(data)
@@ -62,7 +67,7 @@ class SSTableFileStorage(val filePath: String, val offset: Long) extends SSTable
 
         (SSTableStorage.getData(buffer), sstableFile)
     }
+
+    def seek(toOffset: Long): SSTableStorage = new SSTableFileStorage(filePath, toOffset)
 }
-
-
 

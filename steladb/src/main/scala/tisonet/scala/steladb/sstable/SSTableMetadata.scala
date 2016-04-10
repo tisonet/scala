@@ -4,7 +4,7 @@ import tisonet.scala.steladb.sstable.DataSizeFormater.formatSize
 import tisonet.scala.steladb.sstable.DataSizeFormater.parseSize
 
 object SSTableMetadata {
-    def apply(sstableFile: SSTableStorage) = new SSTableMetadata().loadFromFile(sstableFile)
+    def apply(sstableStorage: SSTableStorage) = new SSTableMetadata().loadFromStorage(sstableStorage)
 }
 
 case class SSTableMetadata(dataOffset: Long = 0, dataSize: Long = 0,
@@ -22,7 +22,7 @@ case class SSTableMetadata(dataOffset: Long = 0, dataSize: Long = 0,
             .write(indexLine())
     }
 
-    def loadFromFile(sstableFile: SSTableStorage) = {
+    def loadFromStorage(sstableFile: SSTableStorage) = {
         val metadataSize = sstableFile.getSize(METADATA_TITLE_LINE + dataLine() + indexLine())
 
         parseMetadata(sstableFile.read(metadataSize)._1)
@@ -32,8 +32,8 @@ case class SSTableMetadata(dataOffset: Long = 0, dataSize: Long = 0,
 
     private def indexLine(): String = INDEX_LINE_PATTERN format(formatSize(indexOffset), formatSize(indexSize))
 
-    def parseMetadata(metadata: String) = {
-        val Parser = """==METADATA==\ndata:offset:([0-9]+):size:([0-9]+)\nindex:offset:([0-9]+):size:([0-9]+).*""".r
+    def parseMetadata(metadata: String): SSTableMetadata = {
+        val Parser = """==METADATA==\ndata:offset:([0-9]+):size:([0-9]+)\nindex:offset:([0-9]+):size:([0-9]+)\n*""".r
 
         metadata match {
             case Parser(dOffset, dSize, iOffset, iSize) => new SSTableMetadata(

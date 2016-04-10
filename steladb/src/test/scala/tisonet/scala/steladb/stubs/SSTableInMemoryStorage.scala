@@ -32,4 +32,9 @@ class SSTableInMemoryStorage(var buffer: List[Char] = List()) extends SSTableSto
     }
 
      def offset = currentOffset
+
+    override def seek(toOffset: Long): SSTableStorage = {
+        currentOffset = toOffset;
+        this
+    }
 }
