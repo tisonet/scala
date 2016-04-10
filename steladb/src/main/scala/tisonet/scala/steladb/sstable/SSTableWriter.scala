@@ -5,7 +5,7 @@ import java.lang.System.currentTimeMillis
 import tisonet.scala.steladb.memtable.{Memtable, MemtableEntry}
 
 class SSTableWriter(val memtable: Memtable, val filePath: String, val maxIndexSize: Int)
-    extends SSTableCommon{
+    extends SSTableIO{
 
     def flushToStorage(): String = {
 

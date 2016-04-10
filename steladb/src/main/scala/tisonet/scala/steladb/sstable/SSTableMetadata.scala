@@ -33,7 +33,7 @@ case class SSTableMetadata(dataOffset: Long = 0, dataSize: Long = 0,
     private def indexLine(): String = INDEX_LINE_PATTERN format(formatSize(indexOffset), formatSize(indexSize))
 
     def parseMetadata(metadata: String): SSTableMetadata = {
-        val Parser = """==METADATA==\ndata:offset:([0-9]+):size:([0-9]+)\nindex:offset:([0-9]+):size:([0-9]+)""".r
+        val Parser = """==METADATA==\ndata:offset:([0-9]+):size:([0-9]+)\nindex:offset:([0-9]+):size:([0-9]+).*""".r
 
         metadata match {
             case Parser(dOffset, dSize, iOffset, iSize) => new SSTableMetadata(

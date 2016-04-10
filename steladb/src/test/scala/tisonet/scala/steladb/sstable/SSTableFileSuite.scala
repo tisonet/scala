@@ -1,18 +1,12 @@
 package tisonet.scala.steladb.sstable
 
-import java.io.{BufferedWriter, FileOutputStream, OutputStreamWriter}
-import java.nio.charset.StandardCharsets._
-import java.nio.file.{Files, Paths}
-
 import org.scalatest.{BeforeAndAfterEach, FunSuite}
 
-class SSTableFileSuite extends FunSuite with BeforeAndAfterEach {
-
-    val TEST_FILE_PATH = Paths.get("test_sstable").toAbsolutePath.toString
+class SSTableFileSuite extends FunSuite with BeforeAndAfterEach with IOSuite{
     var filePath: String = _
 
     override def beforeEach() {
-        filePath = TEST_FILE_PATH + System.currentTimeMillis
+        filePath = testFilePath
     }
 
     override def afterEach() {
@@ -48,21 +42,5 @@ class SSTableFileSuite extends FunSuite with BeforeAndAfterEach {
     test("Seek should skip to given position and read should start from a given position") {
         writeToFile(filePath, "Hello")
         assert(new SSTableFile(filePath, 2).read(3)._1 == "llo")
-    }
-
-    def readFile(filePath: String): String =
-        new String(Files.readAllBytes(Paths.get(filePath)), UTF_8)
-
-    def deleteFile(filePath: String) =
-        Files.deleteIfExists(Paths.get(filePath))
-
-    def writeToFile(filePath: String, data: String) = {
-        val out = new BufferedWriter(new OutputStreamWriter(
-            new FileOutputStream(filePath), "UTF-8"))
-        try {
-            out.write(data)
-        } finally {
-            out.close()
-        }
     }
 }

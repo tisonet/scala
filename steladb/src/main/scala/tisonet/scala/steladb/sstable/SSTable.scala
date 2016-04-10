@@ -2,7 +2,7 @@ package tisonet.scala.steladb.sstable
 
 import tisonet.scala.steladb.sstable.DataSizeFormater.parseSize
 
-class SSTable(filePath: String, index: SSTableIndex) extends SSTableCommon {
+class SSTable(filePath: String, index: SSTableIndex) extends SSTableIO {
 
     def get(rowKey: String): Option[String] = {
 
