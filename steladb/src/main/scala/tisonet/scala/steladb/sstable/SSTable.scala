@@ -7,11 +7,7 @@ class SSTable(filePath: String, index: SSTableIndex) extends SSTableIO {
 
     def get(rowKey: String): Option[String] = {
 
-        def indexEntryByKey(entry: IndexEntry) = {
-            entry.rowKey >= rowKey
-        }
-
-        index.sortedEntries.find(indexEntryByKey) match {
+        index.getOffset(rowKey) match {
             case Some(e) => findData(e)
             case _ => None
         }

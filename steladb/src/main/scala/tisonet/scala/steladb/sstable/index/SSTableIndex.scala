@@ -8,6 +8,7 @@ object SSTableIndex {
 }
 
 class SSTableIndex private (val index: Map[String, Long]) {
+
     def add(entry: IndexEntry) = {
         new SSTableIndex(index.+((entry.rowKey, entry.offset)))
     }
@@ -15,6 +16,15 @@ class SSTableIndex private (val index: Map[String, Long]) {
     def sortedEntries = {
         for ((key, offset) <- index.toSeq.sortBy(_._1))
             yield IndexEntry(key, offset)
+    }
+
+    def getOffset(key: String) = {
+        // TODO: Binary search the closest index
+        def indexEntryByKey(entry: IndexEntry) = {
+            entry.rowKey.compare(key) >= 0
+        }
+
+        sortedEntries.find(indexEntryByKey)
     }
 
     def size = index.size
