@@ -28,9 +28,32 @@ class NodeScalaSuite extends FunSuite {
       case t: TimeoutException => // ok!
     }
   }
+    test("Future should completed when all futures complete"){
+        val all = Future.all(List(Future.always(5), Future.always(6), Future.always(7)))
+        assert(Await.result(all, 1 second) == List(5, 6, 7))
+    }
 
-  
-  
+    test("Future should fail when any of all fails"){
+        val all = Future.all(List(Future.always(5), Future.failed(new Exception), Future.always(7)))
+        try {
+            Await.result(all, 1 second)
+            assert(false)
+        } catch {
+            case t: Exception => // ok!
+        }
+    }
+
+    test ("Should return value of future which finish first") {
+        val any = Future.any(List(
+            Future.delayedValue(6 milliseconds, 6),
+            Future.delayedValue(2 milliseconds, 2),
+            Future.delayedValue(3 milliseconds, 3))
+        )
+
+        val results = Await.result(any, 1 second)
+        assert(results == 2)
+    }
+
   class DummyExchange(val request: Request) extends Exchange {
     @volatile var response = ""
     val loaded = Promise[String]()
