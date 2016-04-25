@@ -54,6 +54,34 @@ class NodeScalaSuite extends FunSuite {
         assert(results == 2)
     }
 
+
+  test ("now should return throws exception when future not finished") {
+    try {
+      Future.delayedValue(6 milliseconds, 6).now
+      assert(false)
+    } catch {
+      case t: NoSuchElementException =>
+      case t: Exception => assert(false)
+    }
+  }
+
+  test ("now should return value when future is finished") {
+    assert(Future.always(3).now == 3)
+  }
+
+  test ("continueWith should continue with a given function and returns results of a given function"){
+    val f = Future.always(1).continueWith(f => f.now * 2)
+    val results = Await.result(f, 10 millis)
+    assert(results == 2)
+  }
+
+  test ("continue should continue with a given function and returns results of a given function"){
+    val f = Future.always(1).continue(f => f.get * 2)
+    val results = Await.result(f, 10 millis)
+    assert(results == 2)
+  }
+
+
   class DummyExchange(val request: Request) extends Exchange {
     @volatile var response = ""
     val loaded = Promise[String]()

@@ -57,8 +57,8 @@ package object nodescala {
       val p = Promise[T]()
 
       fs.foreach(x => x.onComplete {
-        case s@Success(r) => p.complete(s)
-        case Failure(e) => p.failure(e)
+        case s@Success(r) => p.tryComplete(s)
+        case Failure(e) => p.tryFailure(e)
       })
 
       p.future
@@ -109,7 +109,13 @@ package object nodescala {
      *  However, it is also non-deterministic -- it may throw or return a value
      *  depending on the current state of the `Future`.
      */
-    def now: T = ???
+    def now: T = {
+      f.value match {
+        case Some(Success(t)) => t
+        case Some(f@Failure(e)) => throw e
+        case None => throw new NoSuchElementException()
+      }
+    }
 
     /** Continues the computation of this future by taking the current future
      *  and mapping it into another future.
@@ -117,7 +123,9 @@ package object nodescala {
      *  The function `cont` is called only after the current future completes.
      *  The resulting future contains a value returned by `cont`.
      */
-    def continueWith[S](cont: Future[T] => S): Future[S] = ???
+    def continueWith[S](cont: Future[T] => S): Future[S] = {
+      Future { cont(f) }
+    }
 
     /** Continues the computation of this future by taking the result
      *  of the current future and mapping it into another future.
@@ -125,7 +133,9 @@ package object nodescala {
      *  The function `cont` is called only after the current future completes.
      *  The resulting future contains a value returned by `cont`.
      */
-    def continue[S](cont: Try[T] => S): Future[S] = ???
+    def continue[S](cont: Try[T] => S): Future[S] = {
+      f.map (x => cont(Success(x)) )
+    }
 
   }
 
