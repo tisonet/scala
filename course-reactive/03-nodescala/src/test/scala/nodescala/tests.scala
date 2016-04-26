@@ -9,6 +9,7 @@ import scala.collection._
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.postfixOps
+import ExecutionContext.Implicits.global
 
 @RunWith(classOf[JUnitRunner])
 class NodeScalaSuite extends FunSuite {
@@ -80,6 +81,26 @@ class NodeScalaSuite extends FunSuite {
     val results = Await.result(f, 10 millis)
     assert(results == 2)
   }
+
+  test ("run can be canceled") {
+    val working = Future.run() { ct =>
+      Future {
+        while (ct.nonCancelled) {
+          println("working")
+        }
+        assert(true)
+        println("done")
+      }
+    }
+
+    val f = Future.delay(5 millisecond)
+
+    f onSuccess {
+      case _ => working.unsubscribe()
+    }
+  }
+
+
 
 
   class DummyExchange(val request: Request) extends Exchange {
