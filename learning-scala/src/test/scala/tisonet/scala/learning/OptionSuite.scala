@@ -54,4 +54,13 @@ class OptionSuite extends FunSuite{
     test("Should return None when filter fails") {
         assert(Some("a").filter(x => x != "a" ) == None)
     }
+
+    test("Should map2 Some to Some") {
+        assert(Some("a").map2(Some("b")) ((a,b) => a + b) == Some("ab"))
+    }
+
+    test("Should map2 None to Some") {
+        assert(None.map2(Some("b")) ((a: String,b: String) => a + b) == None)
+    }
+
 }

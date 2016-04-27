@@ -19,20 +19,20 @@ sealed trait Option[+A] {
         }
     }
 
-    def orElse[B >: A] (ob: => Option[B]): Option[B] = {
-        map (Some(_)) getOrElse ob
+    def orElse[B >: A](ob: => Option[B]): Option[B] = {
+        map(Some(_)) getOrElse ob
     }
 
-    def filter (f: A => Boolean): Option[A] = {
-        this match {
-            case s@Some(value) if f(value) => s
-            case _ => None
-        }
+    def filter(f: A => Boolean): Option[A] = {
+        flatMap(a => if (f(a)) Some(a) else None)
     }
 
-
+    def map2[B,C](b: Option[B]) (op: (A, B) => C): Option[C] = {
+        flatMap(aa => b.map(bb => op(aa, bb)))
+    }
 }
 
 case class Some[+A](value: A) extends Option[A]
+
 case object None extends Option[Nothing]
 
