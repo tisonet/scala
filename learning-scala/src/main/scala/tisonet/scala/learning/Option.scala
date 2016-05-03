@@ -30,6 +30,11 @@ sealed trait Option[+A] {
     def map2[B,C](b: Option[B]) (op: (A, B) => C): Option[C] = {
         flatMap(aa => b.map(bb => op(aa, bb)))
     }
+
+    def sequence[A](a: List[Option[A]]): Option[List[A]] = a match {
+        case Nil => Some(Nil)
+        case h::t =>  h flatMap (hh => sequence(t) map (hh :: _))
+    }
 }
 
 case class Some[+A](value: A) extends Option[A]
