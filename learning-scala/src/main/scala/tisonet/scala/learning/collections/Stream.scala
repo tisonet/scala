@@ -1,9 +1,11 @@
 package tisonet.scala.learning.collections
 
+import tisonet.scala.learning.collections
+
 /***
   * Represents (non-strict) lazy list, values are evaluated on demand.
   */
-sealed trait Stream[+A] {
+trait Stream[+A] {
 
     def headOption: Option[A] = this match {
         case Empty => None
@@ -29,6 +31,31 @@ sealed trait Stream[+A] {
         }
 
         loop(this, n)
+    }
+
+    def takeWhile(f: A => Boolean): Stream[A] = this match  {
+        case Cons(h,t) if f(h()) => Stream.cons(h(), t() takeWhile f)
+        case _ => Stream.empty
+    }
+
+    def foldRight[B](z: => B)(f: (A, => B) => B): B = this match {
+        case Cons(h, t) => f(h(), t().foldRight(z)(f))
+        case _ => z
+    }
+
+    def exists(p: A => Boolean): Boolean = {
+        foldRight(false) ((a,b) => p(a) || b)
+    }
+
+    def forAll(p: A => Boolean): Boolean = {
+        foldRight(true) ((a,b) => p(a) && b)
+    }
+
+    def takeWhile_2(f: A => Boolean): Stream[A] = {
+        foldRight(Stream.empty[A]) ((a, b) => {
+            if (f(a)) Stream.cons(a, b)
+            else Stream.empty
+        })
     }
 
 }
