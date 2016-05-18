@@ -3,13 +3,12 @@
  */
 package actorbintree
 
-import akka.actor.{ Props, ActorRef, ActorSystem }
-import org.scalatest.{ BeforeAndAfterAll, FlatSpec }
-import akka.testkit.{ TestProbe, ImplicitSender, TestKit }
-import org.scalatest.Matchers
-import scala.util.Random
+import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import org.scalatest.{BeforeAndAfterAll, FunSuiteLike, Matchers}
+
 import scala.concurrent.duration._
-import org.scalatest.FunSuiteLike
+import scala.util.Random
 
 class BinaryTreeSuite(_system: ActorSystem) extends TestKit(_system) with FunSuiteLike with Matchers with BeforeAndAfterAll with ImplicitSender
 {
@@ -46,17 +45,43 @@ class BinaryTreeSuite(_system: ActorSystem) extends TestKit(_system) with FunSui
     // the grader also verifies that enough actors are created
   }
 
+  def verifyWithGC(probe: TestProbe, opsB: Seq[Operation], opsA: Seq[Operation], expected: Seq[OperationReply]): Unit = {
+    val topNode = system.actorOf(Props[BinaryTreeSet])
+
+    opsB foreach { op =>
+      topNode ! op
+    }
+
+    topNode ! GC
+
+    opsA foreach { op =>
+      topNode ! op
+    }
+
+    receiveN(probe, opsA ++ opsB, expected)
+    // the grader also verifies that enough actors are created
+  }
+
+
   test("proper inserts and lookups") {
     val topNode = system.actorOf(Props[BinaryTreeSet])
 
     topNode ! Contains(testActor, id = 1, 1)
-    expectMsg(ContainsResult(1, false))
+    expectMsg(ContainsResult(1, result = false))
 
     topNode ! Insert(testActor, id = 2, 1)
     topNode ! Contains(testActor, id = 3, 1)
 
     expectMsg(OperationFinished(2))
     expectMsg(ContainsResult(3, true))
+  }
+
+
+  test("topNode should be empty") {
+    val topNode = system.actorOf(Props[BinaryTreeSet])
+
+    topNode ! Contains(testActor, id = 1, 0)
+    expectMsg(ContainsResult(1, result = false))
   }
 
   test("instruction example") {
@@ -81,6 +106,124 @@ class BinaryTreeSuite(_system: ActorSystem) extends TestKit(_system) with FunSui
       )
 
     verify(requester, ops, expectedReplies)
+  }
+
+
+
+  test("removes non existing") {
+    val topNode = system.actorOf(Props[BinaryTreeSet])
+
+    topNode ! Insert(testActor, id = 1, 1)
+    topNode ! Remove(testActor, id = 2, 2)
+
+    expectMsg(OperationFinished(1))
+    expectMsg(OperationFinished(2))
+
+  }
+
+
+  test("gc should preserve not deleted nodes") {
+
+    val requester = TestProbe()
+    val requesterRef = requester.ref
+    val opsB = List(
+      Insert(requesterRef, id=1, 5),
+      Insert(requesterRef, id=2, 3),
+      Insert(requesterRef, id=3, 6)
+    )
+
+    val opsA = List(
+      Contains(requesterRef, id=4, 5)
+    )
+
+    val expectedReplies = List(
+      OperationFinished(id=1),
+      OperationFinished(id=2),
+      OperationFinished(id=3),
+      ContainsResult(id=4, true)
+    )
+
+    verifyWithGC(requester, opsB, opsA, expectedReplies)
+  }
+
+  test("gc should no preserve deleted nodes") {
+
+    val requester = TestProbe()
+    val requesterRef = requester.ref
+    val opsB = List(
+      Insert(requesterRef, id=1, 5),
+      Insert(requesterRef, id=2, 3),
+      Insert(requesterRef, id=3, 6),
+      Remove(requesterRef, id=4, 5)
+    )
+
+    val opsA = List(
+      Contains(requesterRef, id=5, 5)
+    )
+
+    val expectedReplies = List(
+      OperationFinished(id=1),
+      OperationFinished(id=2),
+      OperationFinished(id=3),
+      OperationFinished(id=4),
+      ContainsResult(id=5, false)
+    )
+
+    verifyWithGC(requester, opsB, opsA, expectedReplies)
+  }
+
+  test("gc should insert and delete node in tree after GC") {
+
+    val requester = TestProbe()
+    val requesterRef = requester.ref
+    val opsB = List(
+      Insert(requesterRef, id = 1, 5)
+    )
+
+    val opsA = List(
+      Insert(requesterRef, id = 2, 8),
+      Contains(requesterRef, id = 3, 8),
+      Remove(requesterRef, id = 4, 8),
+      Contains(requesterRef, id = 5, 8)
+    )
+
+    val expectedReplies = List(
+      OperationFinished(id = 1),
+      OperationFinished(id = 2),
+      ContainsResult(id = 3, true),
+      OperationFinished(id = 4),
+      ContainsResult(id = 5, false)
+    )
+
+    verifyWithGC(requester, opsB, opsA, expectedReplies)
+  }
+
+  test("gc should delete nodw in tree after GC") {
+
+      val requester = TestProbe()
+      val requesterRef = requester.ref
+      val opsB = List(
+        Insert(requesterRef, id=1, 5),
+        Insert(requesterRef, id=2, 3),
+        Insert(requesterRef, id=3, 6),
+        Remove(requesterRef, id=4, 5)
+      )
+
+      val opsA = List(
+        Remove(requesterRef, id=5, 5),
+        Contains(requesterRef, id=6, 5)
+      )
+
+      val expectedReplies = List(
+        OperationFinished(id=1),
+        OperationFinished(id=2),
+        OperationFinished(id=3),
+        OperationFinished(id=4),
+        OperationFinished(id=5),
+        ContainsResult(id=6, false)
+      )
+
+    verifyWithGC(requester, opsB, opsA, expectedReplies)
   }
 
   test("behave identically to built-in set (includes GC)") {

@@ -3,7 +3,9 @@
  */
 package actorbintree
 
+import actorbintree.BinaryTreeNode.{CopyFinished, CopyTo}
 import akka.actor._
+
 import scala.collection.immutable.Queue
 
 object BinaryTreeSet {
@@ -52,29 +54,50 @@ object BinaryTreeSet {
 
 class BinaryTreeSet extends Actor {
   import BinaryTreeSet._
-  import BinaryTreeNode._
 
   def createRoot: ActorRef = context.actorOf(BinaryTreeNode.props(0, initiallyRemoved = true))
 
   var root = createRoot
+  var pendingOperations = Queue.empty[Operation]
 
-  // optional
-  var pendingQueue = Queue.empty[Operation]
-
-  // optional
   def receive = normal
 
-  // optional
-  /** Accepts `Operation` and `GC` messages. */
-  val normal: Receive = { case _ => ??? }
+  val normal: Receive = {
+    case op: Operation => {
+      root ! op
+    }
+    case GC => {
+      val newRoot = createRoot
+      root ! CopyTo(newRoot)
+      context.become(garbageCollecting(newRoot))
+    }
+  }
 
-  // optional
-  /** Handles messages while garbage collection is performed.
-    * `newRoot` is the root of the new binary tree where we want to copy
-    * all non-removed elements into.
-    */
-  def garbageCollecting(newRoot: ActorRef): Receive = ???
+  def garbageCollecting(newRoot: ActorRef): Receive = {
+    case op: Operation => {
+      pendingOperations = pendingOperations.enqueue(op)
+    }
+    case CopyFinished => {
+      root = newRoot
+      processOperations(pendingOperations)
+      context.become(normal)
+    }
+  }
 
+
+  def processOperations(p:Queue[Operation]) {
+    // Recursively sends all pending operations to new root node
+    if(p.nonEmpty) {
+          p.dequeue match {
+            case (op, xs) =>
+              root ! op
+              processOperations(xs)
+            }
+        }
+    else {
+        pendingOperations = Queue.empty[Operation]
+      }
+    }
 }
 
 object BinaryTreeNode {
@@ -96,18 +119,90 @@ class BinaryTreeNode(val elem: Int, initiallyRemoved: Boolean) extends Actor {
   var subtrees = Map[Position, ActorRef]()
   var removed = initiallyRemoved
 
-  // optional
-  def receive = normal
+  def receive = receiveOperations orElse receiveCopy
 
-  // optional
-  /** Handles `Operation` messages and `CopyTo` requests. */
-  val normal: Receive = { case _ => ??? }
+  val receiveCopy: Receive = {
+    case copyTo@CopyTo(treeNode) => {
+      // Add itself into new tree only when not deleted
+      if(!removed){
+        treeNode ! Insert(self, 100000, elem)
+      }
 
-  // optional
-  /** `expected` is the set of ActorRefs whose replies we are waiting for,
-    * `insertConfirmed` tracks whether the copy of this node to the new tree has been confirmed.
-    */
-  def copying(expected: Set[ActorRef], insertConfirmed: Boolean): Receive = ???
+      delegateCopy(Right, copyTo)
+      delegateCopy(Left, copyTo)
 
+      context.become(copying(subtrees.values.toSet, removed))
+    }
+  }
 
+  val receiveOperations: Receive = {
+    case Contains(r, id, e) if e == elem => r ! ContainsResult(id, result = !removed)
+    case op@Contains(r, id, e) if e > elem => delegateOrNotContains(Right, op)
+    case op@Contains(r, id, e) if e < elem => delegateOrNotContains(Left, op)
+
+    case Insert(r, id, e) if e == elem => {
+      removed = false
+      r ! OperationFinished(id)
+    }
+    case op@Insert(_, id, e) if e > elem => delegateOrCreate(Right, op)
+    case op@Insert(_, id, e) if e < elem => delegateOrCreate(Left, op)
+
+    case Remove(r, id, e) if e == elem => {
+      removed = true
+      r ! OperationFinished(id)
+    }
+    case op@Remove(_, _, e) if e > elem => delegateOrFinished(Right, op)
+    case op@Remove(_, _, e) if e < elem => delegateOrFinished(Left, op)
+  }
+
+  def copying(expected: Set[ActorRef], insertConfirmed: Boolean): Receive = {
+    if(expected.isEmpty && insertConfirmed) {
+      context.parent ! CopyFinished
+      context.stop(self)
+    }
+
+    {
+      case OperationFinished(id) => {
+        context.become(copying(expected, insertConfirmed = true))
+      }
+      case CopyFinished => {
+        context.become(copying(expected.-(sender), insertConfirmed))
+      }
+    }
+  }
+
+  def delegateOrFinished(position: Position, operation: Operation) = {
+    subtrees.get(position) match {
+      case Some(a) => a ! operation
+      case None => {
+        operation.requester ! OperationFinished(operation.id)
+      }
+    }
+  }
+
+  def delegateOrCreate(position: Position, operation: Operation) = {
+    subtrees.get(position) match {
+      case Some(a) => a ! operation
+      case None => {
+        subtrees = subtrees.updated(position, context.actorOf(props(operation.elem, initiallyRemoved = false)))
+        operation.requester ! OperationFinished(operation.id)
+      }
+    }
+  }
+
+  def delegateOrNotContains(position: Position, operation: Operation) = {
+    subtrees.get(position) match {
+      case Some(a) => a ! operation
+      case None => {
+        operation.requester ! ContainsResult(operation.id, result = false)
+      }
+    }
+  }
+
+  def delegateCopy(position: Position, copyTo: CopyTo) = {
+    subtrees.get(position) match {
+      case Some(a) => a ! copyTo
+      case None =>
+    }
+  }
 }
